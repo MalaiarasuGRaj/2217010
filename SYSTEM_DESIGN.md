@@ -53,6 +53,7 @@ The system architecture consists of:
 ## 6. Error Handling
 
 *   **Frontend**:
+    *   **Client-side URL validation** is performed on input fields, providing immediate visual feedback to the user.
     *   Simulated API call errors are handled locally and displayed to the user.
     *   Logging middleware is used to report these events to the centralized logging service.
     *   Input validation is performed on the `UrlForm` to guide users.
@@ -60,6 +61,7 @@ The system architecture consists of:
 ## 7. Data Model
 
 *   Since there is no backend, there is no persistent data model. All data is handled in-memory within the frontend application.
+*   **Browser Local Storage**: Shortened URLs and form inputs are persisted in the browser's `localStorage` for user convenience across sessions.
 
 ## 8. Deployment
 

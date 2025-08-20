@@ -1,23 +1,47 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { TextField, Button, Box, Typography, Card, CardContent, CircularProgress, Alert } from '@mui/material';
 import { log } from '../middleware/logger';
 
-// const SHORTEN_API_ENDPOINT = "http://20.244.56.144/evaluation-service/urls"; // Removed as backend is no longer being built
-const ACCESS_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJNYXBDbGFpbXMiOnsiYXVkIjoiaHR0cDovLzIwLjI0NC41Ni4xNDQvZXZhbHVhdGlvbi1zZXJ2aWNlIiwiZW1haWwiOiIyMjE3MDEwQG5lYy5lZHUuLmFjLmluIiwiZXhwIjoxNzU1NjY2NDAxLCJpYXQiOjE3NTU2NjU1MDEsImlzcyI6IkFmZm9yZCBNZWRpY2FsIFRlY2hub2xvZ2llcyBQcml2YXRlIExpbWl0ZWQiLCJqdGkiOiJhMjFmNDdhMi0wOWI5LTQ0MDAtOGI4NC1lNjM0MDNiMzRkMiIsImxvY2FsZSI6ImVuLUlOIiwibmFtZSI6Im1hbGFpYXJhc3UgZyIsInN1YiI6ImJmOWZjNmI3LWUxZWUtNDM0Ni04NTQ5LWI3Mzg1OTU4NTdkOCJ9LCJlbWFpbCI6IjIyMTcwMTBAbmVjLmVkdS5pbiIsIm5hbWUiOiJtYWxhaXRhcmFzdSBnIiwicm9sbE5vIjoiMjIxNzAxMCIsImFjY2Vzc0NvZGUiOiJ4c1pUVG4iLCJjbGllbnRJRCI6ImJmOWZjNmI3LWUxZWUtNDM0Ni04NTQ5LWI3Mzg1OTU4NTdkOCIsImNsaWVudFNlY3JldCI6IlVZakdYU1hnSmtaalhleSJ9.HS7e-nwYj4yGQgfT8WI3aMXW4FFXIjYmbV0oqONqQOQ"; // Your actual token
+const isValidUrl = (url) => {
+  try {
+    new URL(url);
+    return true;
+  } catch (e) {
+    return false;
+  }
+};
 
 function UrlForm() {
-  const [urls, setUrls] = useState([{
-    originalUrl: '',
-    validity: '',
-    preferredShortcode: ''
-  }]);
-  const [shortenedUrls, setShortenedUrls] = useState([]);
+  const [urls, setUrls] = useState(() => {
+    const savedUrls = localStorage.getItem('shortenedUrls');
+    return savedUrls ? JSON.parse(savedUrls) : [{
+      originalUrl: '',
+      validity: '',
+      preferredShortcode: '',
+      error: null
+    }];
+  });
+  const [shortenedUrls, setShortenedUrls] = useState(() => {
+    const savedShortenedUrls = localStorage.getItem('displayedShortenedUrls');
+    return savedShortenedUrls ? JSON.parse(savedShortenedUrls) : [];
+  });
   const [loading, setLoading] = useState(false);
   const [overallError, setOverallError] = useState(null);
+
+  useEffect(() => {
+    localStorage.setItem('shortenedUrls', JSON.stringify(urls));
+  }, [urls]);
+
+  useEffect(() => {
+    localStorage.setItem('displayedShortenedUrls', JSON.stringify(shortenedUrls));
+  }, [shortenedUrls]);
 
   const handleUrlChange = (index, field, value) => {
     const newUrls = [...urls];
     newUrls[index][field] = value;
+    if (field === 'originalUrl') {
+      newUrls[index].error = isValidUrl(value) ? null : 'Invalid URL format';
+    }
     setUrls(newUrls);
   };
 
@@ -26,7 +50,8 @@ function UrlForm() {
       setUrls([...urls, {
         originalUrl: '',
         validity: '',
-        preferredShortcode: ''
+        preferredShortcode: '',
+        error: null
       }]);
     }
   };
@@ -38,8 +63,19 @@ function UrlForm() {
     setOverallError(null);
 
     const results = [];
+    let hasError = false;
     for (const urlData of urls) {
       if (!urlData.originalUrl) continue;
+
+      if (urlData.error) {
+        hasError = true;
+        results.push({
+          originalUrl: urlData.originalUrl,
+          error: urlData.error,
+          success: false
+        });
+        continue; // Skip processing invalid URL
+      }
 
       try {
         // Simulate API call for demonstration
@@ -64,9 +100,12 @@ function UrlForm() {
     }
     setShortenedUrls(results);
     setLoading(false);
-    if (results.some(r => !r.success)) {
+    if (hasError || results.some(r => !r.success)) {
       setOverallError("Some URLs failed to shorten. Check individual errors above.");
+    } else if (results.length > 0) {
+        setOverallError(null); // Clear overall error if all successful
     }
+
   };
 
   return (
@@ -82,6 +121,8 @@ function UrlForm() {
             value={url.originalUrl}
             onChange={(e) => handleUrlChange(index, 'originalUrl', e.target.value)}
             required
+            error={!!url.error}
+            helperText={url.error}
           />
           <TextField
             label="Validity (minutes)"
@@ -108,7 +149,7 @@ function UrlForm() {
       >
         Add another URL
       </Button>
-      <Button variant="contained" type="submit" fullWidth disabled={loading}>
+      <Button variant="contained" type="submit" fullWidth disabled={loading || urls.some(url => url.error || !url.originalUrl)}>
         {loading ? <CircularProgress size={24} /> : "Shorten"}
       </Button>
 
