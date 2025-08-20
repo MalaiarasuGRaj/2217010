@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Typography, Box, Card, CardContent, CircularProgress, Alert } from '@mui/material';
 import { log } from '../middleware/logger';
 
-const STATISTICS_API_ENDPOINT = "http://20.244.56.144/evaluation-service/urls"; // Assuming this is your actual backend statistics API endpoint
-const ACCESS_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJNYXBDbGFpbXMiOnsiYXVkIjoiaHR0cDovLzIwLjI0NC41Ni4xNDQvZXZhbHVhdGlvbi1zZXJ2aWNlIiwiZW1haWwiOiIyMjE3MDEwQG5lYy5lZHUuLmFjLmluIiwiZXhwIjoxNzU1NjY2NDAxLCJpYXQiOjE3NTU2NjU1MDEsImlzcyI6IkFmZm9yZCBNZWRpY2FsIFRlY2hub2xvZ2llcyBQcml2YXRlIExpbWl0ZWQiLCJqdGkiOiJhMjFmNDdhMi0wOWI5LTQ0MDAtOGI4NC1lNjM0MDNiMzRkMiIsImxvY2FsZSI6ImVuLUlOIiwibmFtZSI6Im1hbGFpYXJhc3UgZyIsInN1YiI6ImJmOWZjNmI3LWUxZWUtNDM0Ni04NTQ5LWI3Mzg1OTU4NTdkOCJ9LCJlbWFpbCI6IjIyMTcwMTBAbmVjLmVkdS5pbiIsIm5hbWUiOiJtYWxhaXRhcmFzdSBnIiwicm9sbE5vIjoiMjIxNzAxMCIsImFjY2Vzc0NvZGUiOiJ4c1pUVG4iLCJjbGllbnRJRCI6ImJmOWZjNmI3LWUxZWUtNDM0Ni04NTQ5LWI3Mzg1OTU4NTdkOCIsImNsaWVudFNlY3JldCI6IlVZakdYU1hnSmtaalhleSJ9.HS7e-nwYj4yGQgfT8WI3aMXW4FFXIjYmbV0oqONqQOQ"; // Your actual token
+// const STATISTICS_API_ENDPOINT = "http://20.244.56.144/evaluation-service/urls"; // Removed as backend is no longer being built
+// const ACCESS_TOKEN = "YOUR_ACCESS_TOKEN"; // No longer needed for this component without backend
 
 function UrlStats() {
   const [stats, setStats] = useState([]);
@@ -12,30 +12,39 @@ function UrlStats() {
 
   useEffect(() => {
     const fetchStats = async () => {
-      log("frontend", "info", "UrlStats", "Attempting to fetch URL statistics");
+      log("frontend", "info", "UrlStats", "Simulating fetching URL statistics with mock data");
       try {
         setLoading(true);
         setError(null);
         
-        const response = await fetch(STATISTICS_API_ENDPOINT, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${ACCESS_TOKEN}`,
+        // Mock API call for demonstration
+        const mockData = [
+          {
+            originalUrl: "https://www.example.com/url1",
+            shortenedUrl: "http://short.url/abcde",
+            clicks: Math.floor(Math.random() * 500),
+            createdAt: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
           },
-        });
+          {
+            originalUrl: "https://www.anothersite.org/page2",
+            shortenedUrl: "http://short.url/fghij",
+            clicks: Math.floor(Math.random() * 500),
+            createdAt: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
+          },
+          {
+            originalUrl: "https://www.test.net/path/to/resource",
+            shortenedUrl: "http://short.url/klmno",
+            clicks: Math.floor(Math.random() * 500),
+            createdAt: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
+          },
+        ];
 
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
-        }
-
-        const data = await response.json();
-        setStats(data);
-        log("frontend", "info", "UrlStats", "Successfully fetched URL statistics");
+        await new Promise(resolve => setTimeout(() => resolve(), 1000)); // Simulate network delay
+        setStats(mockData);
+        log("frontend", "info", "UrlStats", "Successfully loaded mock URL statistics");
       } catch (err) {
         setError(err.message);
-        log("frontend", "error", "UrlStats", `Error fetching URL statistics: ${err.message}`);
+        log("frontend", "error", "UrlStats", `Error loading mock URL statistics: ${err.message}`);
       } finally {
         setLoading(false);
       }

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { TextField, Button, Box, Typography, Card, CardContent, CircularProgress, Alert } from '@mui/material';
 import { log } from '../middleware/logger';
 
-const SHORTEN_API_ENDPOINT = "http://20.244.56.144/evaluation-service/urls"; // TODO: Replace with your actual backend URL shortening API endpoint
+// const SHORTEN_API_ENDPOINT = "http://20.244.56.144/evaluation-service/urls"; // Removed as backend is no longer being built
 const ACCESS_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJNYXBDbGFpbXMiOnsiYXVkIjoiaHR0cDovLzIwLjI0NC41Ni4xNDQvZXZhbHVhdGlvbi1zZXJ2aWNlIiwiZW1haWwiOiIyMjE3MDEwQG5lYy5lZHUuLmFjLmluIiwiZXhwIjoxNzU1NjY2NDAxLCJpYXQiOjE3NTU2NjU1MDEsImlzcyI6IkFmZm9yZCBNZWRpY2FsIFRlY2hub2xvZ2llcyBQcml2YXRlIExpbWl0ZWQiLCJqdGkiOiJhMjFmNDdhMi0wOWI5LTQ0MDAtOGI4NC1lNjM0MDNiMzRkMiIsImxvY2FsZSI6ImVuLUlOIiwibmFtZSI6Im1hbGFpYXJhc3UgZyIsInN1YiI6ImJmOWZjNmI3LWUxZWUtNDM0Ni04NTQ5LWI3Mzg1OTU4NTdkOCJ9LCJlbWFpbCI6IjIyMTcwMTBAbmVjLmVkdS5pbiIsIm5hbWUiOiJtYWxhaXRhcmFzdSBnIiwicm9sbE5vIjoiMjIxNzAxMCIsImFjY2Vzc0NvZGUiOiJ4c1pUVG4iLCJjbGllbnRJRCI6ImJmOWZjNmI3LWUxZWUtNDM0Ni04NTQ5LWI3Mzg1OTU4NTdkOCIsImNsaWVudFNlY3JldCI6IlVZakdYU1hnSmtaalhleSJ9.HS7e-nwYj4yGQgfT8WI3aMXW4FFXIjYmbV0oqONqQOQ"; // Your actual token
 
 function UrlForm() {
@@ -42,40 +42,24 @@ function UrlForm() {
       if (!urlData.originalUrl) continue;
 
       try {
-        const payload = {
-          url: urlData.originalUrl,
-          validity: urlData.validity ? parseInt(urlData.validity) : undefined,
-          shortcode: urlData.preferredShortcode || undefined,
-        };
-
-        const response = await fetch(SHORTEN_API_ENDPOINT, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${ACCESS_TOKEN}`,
-          },
-          body: JSON.stringify(payload),
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
-        results.push({
-          originalUrl: urlData.originalUrl,
-          shortenedUrl: data.shortenedUrl || data.shortUrl, // Adjust based on actual backend response field
-          success: true
-        });
-        log("frontend", "info", "UrlForm", `Successfully shortened: ${urlData.originalUrl}`);
+        // Simulate API call for demonstration
+        await new Promise(resolve => setTimeout(() => {
+          const shortCode = urlData.preferredShortcode || Math.random().toString(36).substring(2, 8);
+          results.push({
+            originalUrl: urlData.originalUrl,
+            shortenedUrl: `http://mock.short.url/${shortCode}`,
+            success: true
+          });
+          resolve();
+        }, 500));
+        log("frontend", "info", "UrlForm", `Successfully simulated shortening: ${urlData.originalUrl}`);
       } catch (error) {
         results.push({
           originalUrl: urlData.originalUrl,
           error: error.message,
           success: false
         });
-        log("frontend", "error", "UrlForm", `Error shortening ${urlData.originalUrl}: ${error.message}`);
+        log("frontend", "error", "UrlForm", `Error simulating shortening ${urlData.originalUrl}: ${error.message}`);
       }
     }
     setShortenedUrls(results);
