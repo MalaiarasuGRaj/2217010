@@ -10,7 +10,8 @@ function UrlStats() {
     const savedStats = localStorage.getItem('urlStatistics'); // New key for statistics
     return savedStats ? JSON.parse(savedStats) : [];
   });
-  const [loading, setLoading] = useState(true);
+  // Initialize loading based on whether data was found in localStorage
+  const [loading, setLoading] = useState(stats.length === 0);
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -114,7 +115,7 @@ function UrlStats() {
           },
         ];
 
-        await new Promise(resolve => setTimeout(() => resolve(), 1000)); // Simulate network delay
+        // await new Promise(resolve => setTimeout(() => resolve(), 1000)); // Removed simulated network delay
         setStats(mockData.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))); // Sort by most recent
         log("frontend", "info", "UrlStats", "Successfully loaded enhanced mock URL statistics");
       } catch (err) {
