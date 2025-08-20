@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import ShortenerPage from './pages/ShortenerPage';
 import StatisticsPage from './pages/StatisticsPage';
+import RedirectPage from './pages/RedirectPage'; // Import the new RedirectPage
 import { Container, AppBar, Toolbar, Typography, Button } from '@mui/material';
 import { Link } from 'react-router-dom';
 
@@ -25,6 +26,7 @@ function App() {
         <Routes>
           <Route path="/" element={<ShortenerPage />} />
           <Route path="/stats" element={<StatisticsPage />} />
+          <Route path="/:shortcode" element={<RedirectPage />} /> {/* New route for redirection */}
         </Routes>
       </Container>
     </Router>

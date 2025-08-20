@@ -6,9 +6,16 @@ import { log } from '../middleware/logger';
 // const ACCESS_TOKEN = "YOUR_ACCESS_TOKEN"; // No longer needed for this component without backend
 
 function UrlStats() {
-  const [stats, setStats] = useState([]);
+  const [stats, setStats] = useState(() => {
+    const savedStats = localStorage.getItem('urlStatistics'); // New key for statistics
+    return savedStats ? JSON.parse(savedStats) : [];
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  useEffect(() => {
+    localStorage.setItem('urlStatistics', JSON.stringify(stats));
+  }, [stats]);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -27,48 +34,83 @@ function UrlStats() {
           return baseDate.toISOString();
         };
 
+        const generateRandomExpiry = () => {
+            const base = new Date();
+            const daysInFuture = Math.floor(Math.random() * 365) + 30; // 30 days to 395 days in future
+            base.setDate(base.getDate() + daysInFuture);
+            return base.toISOString();
+        };
+
+        const generateDetailedClicks = () => {
+            const clicks = [];
+            const numClicks = Math.floor(Math.random() * 5) + 1; // 1 to 5 detailed clicks
+            for (let i = 0; i < numClicks; i++) {
+                const clickDate = new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000); // Clicks in last 7 days
+                clicks.push({
+                    timestamp: clickDate.toISOString(),
+                    source: `Source-${Math.floor(Math.random() * 10) + 1}`,
+                    location: `City-${Math.floor(Math.random() * 5) + 1}`,
+                });
+            }
+            return clicks.sort((a,b) => new Date(a.timestamp) - new Date(b.timestamp));
+        };
+
         const mockData = [
           {
             originalUrl: "https://www.google.com/search?q=url+shortener+best+practices",
             shortenedUrl: `http://mock.short.url/${generateRandomShortcode()}`,
             clicks: generateRandomClicks(),
             createdAt: generateSpecificDate(),
+            expiresAt: generateRandomExpiry(),
+            detailedClicks: generateDetailedClicks(),
           },
           {
             originalUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
             shortenedUrl: `http://mock.short.url/${generateRandomShortcode()}`,
             clicks: generateRandomClicks(),
             createdAt: generateSpecificDate(),
+            expiresAt: generateRandomExpiry(),
+            detailedClicks: generateDetailedClicks(),
           },
           {
             originalUrl: "https://react.dev/learn",
             shortenedUrl: `http://mock.short.url/${generateRandomShortcode()}`,
             clicks: generateRandomClicks(),
             createdAt: generateSpecificDate(),
+            expiresAt: generateRandomExpiry(),
+            detailedClicks: generateDetailedClicks(),
           },
           {
             originalUrl: "https://mui.com/material-ui/react-components/button/",
             shortenedUrl: `http://mock.short.url/${generateRandomShortcode()}`,
             clicks: generateRandomClicks(),
             createdAt: generateSpecificDate(),
+            expiresAt: generateRandomExpiry(),
+            detailedClicks: generateDetailedClicks(),
           },
           {
             originalUrl: "https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API",
             shortenedUrl: `http://mock.short.url/${generateRandomShortcode()}`,
             clicks: generateRandomClicks(),
             createdAt: generateSpecificDate(),
+            expiresAt: generateRandomExpiry(),
+            detailedClicks: generateDetailedClicks(),
           },
           {
             originalUrl: "https://github.com/trending",
             shortenedUrl: `http://mock.short.url/${generateRandomShortcode()}`,
             clicks: generateRandomClicks(),
             createdAt: generateSpecificDate(),
+            expiresAt: generateRandomExpiry(),
+            detailedClicks: generateDetailedClicks(),
           },
           {
             originalUrl: "https://stackoverflow.com/questions/tagged/reactjs",
             shortenedUrl: `http://mock.short.url/${generateRandomShortcode()}`,
             clicks: generateRandomClicks(),
             createdAt: generateSpecificDate(),
+            expiresAt: generateRandomExpiry(),
+            detailedClicks: generateDetailedClicks(),
           },
         ];
 
@@ -83,7 +125,10 @@ function UrlStats() {
       }
     };
 
-    fetchStats();
+    // Only fetch mock data if stats are not already loaded (e.g., from localStorage)
+    if (stats.length === 0) {
+      fetchStats();
+    }
   }, []);
 
   if (loading) {
@@ -114,7 +159,7 @@ function UrlStats() {
                 Original URL: {stat.originalUrl}
               </Typography>
               <Typography variant="body1" color="primary">
-                Shortened URL: <a href={stat.shortenedUrl} target="_blank" rel="noopener noreferrer">{stat.shortenedUrl}</a>
+                Shortened URL: <a href={`/${stat.shortCode}`} target="_blank" rel="noopener noreferrer">{stat.shortenedUrl}</a>
               </Typography>
               <Typography variant="body2" color="text.secondary">
                 Clicks: {stat.clicks}
@@ -122,6 +167,21 @@ function UrlStats() {
               <Typography variant="body2" color="text.secondary">
                 Created At: {new Date(stat.createdAt).toLocaleString()}
               </Typography>
+              {stat.expiresAt && (
+                <Typography variant="body2" color="text.secondary">
+                  Expires At: {new Date(stat.expiresAt).toLocaleString()}
+                </Typography>
+              )}
+              {stat.detailedClicks && stat.detailedClicks.length > 0 && (
+                <Box sx={{ mt: 1, ml: 2 }}>
+                  <Typography variant="body2" sx={{ fontWeight: 'bold' }}>Detailed Clicks:</Typography>
+                  {stat.detailedClicks.map((click, clickIndex) => (
+                    <Typography key={clickIndex} variant="caption" display="block">
+                      - {new Date(click.timestamp).toLocaleString()} from {click.source} ({click.location})
+                    </Typography>
+                  ))}
+                </Box>
+              )}
             </CardContent>
           </Card>
         ))

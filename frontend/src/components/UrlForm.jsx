@@ -11,29 +11,35 @@ const isValidUrl = (url) => {
   }
 };
 
+const isValidShortcode = (shortcode) => {
+  // Alphanumeric, 4-10 characters (example length constraint)
+  return /^[a-zA-Z0-9]{4,10}$/.test(shortcode);
+};
+
 function UrlForm() {
   const [urls, setUrls] = useState(() => {
-    const savedUrls = localStorage.getItem('shortenedUrls');
+    const savedUrls = localStorage.getItem('shortenerFormUrls'); // Changed key
     return savedUrls ? JSON.parse(savedUrls) : [{
       originalUrl: '',
       validity: '',
       preferredShortcode: '',
-      error: null
+      error: null,
+      shortcodeError: null,
     }];
   });
   const [shortenedUrls, setShortenedUrls] = useState(() => {
-    const savedShortenedUrls = localStorage.getItem('displayedShortenedUrls');
+    const savedShortenedUrls = localStorage.getItem('shortenedResults'); // Changed key
     return savedShortenedUrls ? JSON.parse(savedShortenedUrls) : [];
   });
   const [loading, setLoading] = useState(false);
   const [overallError, setOverallError] = useState(null);
 
   useEffect(() => {
-    localStorage.setItem('shortenedUrls', JSON.stringify(urls));
+    localStorage.setItem('shortenerFormUrls', JSON.stringify(urls));
   }, [urls]);
 
   useEffect(() => {
-    localStorage.setItem('displayedShortenedUrls', JSON.stringify(shortenedUrls));
+    localStorage.setItem('shortenedResults', JSON.stringify(shortenedUrls));
   }, [shortenedUrls]);
 
   const handleUrlChange = (index, field, value) => {
@@ -41,6 +47,8 @@ function UrlForm() {
     newUrls[index][field] = value;
     if (field === 'originalUrl') {
       newUrls[index].error = isValidUrl(value) ? null : 'Invalid URL format';
+    } else if (field === 'preferredShortcode') {
+        newUrls[index].shortcodeError = (value && !isValidShortcode(value)) ? 'Alphanumeric, 4-10 chars' : null;
     }
     setUrls(newUrls);
   };
@@ -51,7 +59,8 @@ function UrlForm() {
         originalUrl: '',
         validity: '',
         preferredShortcode: '',
-        error: null
+        error: null,
+        shortcodeError: null,
       }]);
     }
   };
@@ -65,30 +74,70 @@ function UrlForm() {
     const results = [];
     let hasError = false;
     for (const urlData of urls) {
-      if (!urlData.originalUrl) continue;
+      if (!urlData.originalUrl) {
+        if (urlData.preferredShortcode) { // If only shortcode is provided without original URL
+            results.push({
+                originalUrl: 'Missing Original URL',
+                error: 'Original URL is required for custom shortcode',
+                success: false
+            });
+            hasError = true;
+        }
+        continue;
+      }
 
-      if (urlData.error) {
+      if (urlData.error || urlData.shortcodeError) {
         hasError = true;
         results.push({
           originalUrl: urlData.originalUrl,
-          error: urlData.error,
+          error: urlData.error || urlData.shortcodeError,
           success: false
         });
-        continue; // Skip processing invalid URL
+        continue; // Skip processing invalid URL or shortcode
       }
 
       try {
+        let generatedShortcode = urlData.preferredShortcode;
+        let shortcodeCollision = false;
+
+        if (generatedShortcode) {
+            // Check for uniqueness of preferred shortcode
+            const existingShortcode = shortenedUrls.find(item => item.shortCode === generatedShortcode);
+            if (existingShortcode) {
+                shortcodeCollision = true;
+                hasError = true;
+                results.push({
+                    originalUrl: urlData.originalUrl,
+                    error: `Preferred shortcode '${generatedShortcode}' already exists.`,
+                    success: false
+                });
+                log("frontend", "warn", "UrlForm", `Preferred shortcode collision: ${generatedShortcode}`);
+            }
+        }
+
+        if (!generatedShortcode || shortcodeCollision) {
+            // Generate unique shortcode if not provided or if preferred shortcode collides
+            do {
+                generatedShortcode = Math.random().toString(36).substring(2, 8);
+            } while (shortenedUrls.some(item => item.shortCode === generatedShortcode));
+            log("frontend", "info", "UrlForm", `Generated unique shortcode: ${generatedShortcode}`);
+        }
+
+        const validityMinutes = urlData.validity ? parseInt(urlData.validity) : 30; // Default to 30 minutes
+        const expiresAt = new Date(Date.now() + validityMinutes * 60 * 1000).toISOString();
+
         // Simulate API call for demonstration
         await new Promise(resolve => setTimeout(() => {
-          const shortCode = urlData.preferredShortcode || Math.random().toString(36).substring(2, 8);
           results.push({
             originalUrl: urlData.originalUrl,
-            shortenedUrl: `http://mock.short.url/${shortCode}`,
+            shortenedUrl: `http://mock.short.url/${generatedShortcode}`,
+            shortCode: generatedShortcode,
+            expiresAt: expiresAt,
             success: true
           });
           resolve();
         }, 500));
-        log("frontend", "info", "UrlForm", `Successfully simulated shortening: ${urlData.originalUrl}`);
+        log("frontend", "info", "UrlForm", `Successfully simulated shortening: ${urlData.originalUrl} with shortcode ${generatedShortcode}`);
       } catch (error) {
         results.push({
           originalUrl: urlData.originalUrl,
@@ -98,7 +147,7 @@ function UrlForm() {
         log("frontend", "error", "UrlForm", `Error simulating shortening ${urlData.originalUrl}: ${error.message}`);
       }
     }
-    setShortenedUrls(results);
+    setShortenedUrls(prev => [...prev, ...results]); // Append new results
     setLoading(false);
     if (hasError || results.some(r => !r.success)) {
       setOverallError("Some URLs failed to shorten. Check individual errors above.");
@@ -138,6 +187,8 @@ function UrlForm() {
             value={url.preferredShortcode}
             onChange={(e) => handleUrlChange(index, 'preferredShortcode', e.target.value)}
             sx={{ width: '200px' }}
+            error={!!url.shortcodeError}
+            helperText={url.shortcodeError}
           />
         </Box>
       ))}
@@ -149,7 +200,7 @@ function UrlForm() {
       >
         Add another URL
       </Button>
-      <Button variant="contained" type="submit" fullWidth disabled={loading || urls.some(url => url.error || !url.originalUrl)}>
+      <Button variant="contained" type="submit" fullWidth disabled={loading || urls.some(url => url.error || url.shortcodeError || !url.originalUrl)}>
         {loading ? <CircularProgress size={24} /> : "Shorten"}
       </Button>
 
@@ -164,11 +215,16 @@ function UrlForm() {
                 </Typography>
                 {result.success ? (
                   <Typography variant="body1" color="primary">
-                    Shortened: <a href={result.shortenedUrl} target="_blank" rel="noopener noreferrer">{result.shortenedUrl}</a>
+                    Shortened: <a href={`/${result.shortCode}`} target="_blank" rel="noopener noreferrer">{result.shortenedUrl}</a>
                   </Typography>
                 ) : (
                   <Typography variant="body1" color="error">
                     Error: {result.error}
+                  </Typography>
+                )}
+                {result.success && result.expiresAt && (
+                  <Typography variant="body2" color="text.secondary">
+                    Expires: {new Date(result.expiresAt).toLocaleString()}
                   </Typography>
                 )}
               </CardContent>
